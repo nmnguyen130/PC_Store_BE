@@ -11,4 +11,4 @@ yarn-error.*
 # local env files
 .env*.local
 
-app-example
+uploads/

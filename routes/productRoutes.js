@@ -33,10 +33,10 @@ router.get("/", async (req, res) => {
 // Create a new product
 router.post("/", upload.single("image"), async (req, res) => {
   try {
-    const { id, type, price } = req.body;
+    const { name, type, price } = req.body;
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const newProduct = new Product({ id, type, price, image: imagePath });
+    const newProduct = new Product({ name, type, price, image: imagePath });
     await newProduct.save();
 
     res.status(201).json({ message: "Product created!", product: newProduct });
@@ -49,13 +49,17 @@ router.post("/", upload.single("image"), async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { type, price, image } = req.body;
+    const { name, type, price, image } = req.body;
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
-      { type, price, image },
+      { name, type, price, image },
       { new: true }
     );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ error: "Product not found" });
+    }
 
     res.json(updatedProduct);
   } catch (error) {
@@ -66,8 +70,12 @@ router.put("/:id", async (req, res) => {
 // Delete a product
 router.delete("/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    await Product.findByIdAndDelete(id);
+    const deletedProduct = await Product.findByIdAndDelete(id);
+
+    if (!deletedProduct) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
     res.json({ message: "Product deleted" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete product" });
