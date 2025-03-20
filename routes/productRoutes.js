@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import Product from "../models/product.js";
 
 const router = express.Router();
@@ -30,6 +31,22 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get a single product by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch product" });
+  }
+});
+
 // Create a new product
 router.post("/", upload.single("image"), async (req, res) => {
   try {
@@ -46,22 +63,32 @@ router.post("/", upload.single("image"), async (req, res) => {
 });
 
 // Update a product
-router.put("/:id", async (req, res) => {
+router.put("/:id", upload.single("image"), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, type, price, image } = req.body;
+    const { name, type, price } = req.body;
+    console.log(name, type, price);
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      id,
-      { name, type, price, image },
-      { new: true }
-    );
-
-    if (!updatedProduct) {
+    let product = await Product.findById(id);
+    if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    res.json(updatedProduct);
+    let updatedData = { name, type, price };
+
+    if (req.file) {
+      if (product.image) {
+        const oldImagePath = path.join("uploads", path.basename(product.image));
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      updatedData.image = `/uploads/${req.file.filename}`;
+    }
+
+    product = await Product.findByIdAndUpdate(id, updatedData, { new: true });
+
+    res.json({ message: "Product updated", product });
   } catch (error) {
     res.status(500).json({ error: "Failed to update product" });
   }
@@ -70,12 +97,21 @@ router.put("/:id", async (req, res) => {
 // Delete a product
 router.delete("/:id", async (req, res) => {
   try {
-    const deletedProduct = await Product.findByIdAndDelete(id);
+    const { id } = req.params;
+    const product = await Product.findById(id);
 
-    if (!deletedProduct) {
-      return res.status(404).json({ error: "Product not found" });
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
     }
 
+    if (product.image) {
+      const imagePath = path.join("uploads", path.basename(product.image));
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    await Product.findByIdAndDelete(id);
     res.json({ message: "Product deleted" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete product" });

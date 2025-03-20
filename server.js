@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
+import path from "path";
 
 import connectDB from "./db.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -23,6 +24,7 @@ connectDB();
 // Mount routes
 app.use("/users", userRoutes);
 app.use("/products", productRoutes);
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Start server
 app.listen(PORT, () => {
