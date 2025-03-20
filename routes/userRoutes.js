@@ -8,11 +8,11 @@ const router = express.Router();
 // Register a new user
 router.post("/register", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new User({ username, password: hashedPassword });
+    const newUser = new User({ email, password: hashedPassword });
     await newUser.save();
 
     res.status(201).json({ message: "User registered!", user: newUser });
@@ -24,17 +24,17 @@ router.post("/register", async (req, res) => {
 // Login a user
 router.post("/login", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ error: "Invalid username or password" });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ error: "Invalid username or password" });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
     const token = jwt.sign({ userId: user._id }, "secret-key", {
@@ -56,29 +56,15 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Create a new user
-router.post("/", async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    const newUser = new User({ username, password });
-    await newUser.save();
-
-    res.status(201).json({ message: "User created!", user: newUser });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create user" });
-  }
-});
-
 // Update a user
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
     const updatedUser = await User.findByIdAndUpdate(
       id,
-      { username, password },
+      { email, password },
       { new: true }
     );
 
